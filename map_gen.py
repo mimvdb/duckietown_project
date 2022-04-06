@@ -107,14 +107,29 @@ def all_loops() -> List[List[Tuple[int, int]]]:
     # (unsure if different starting points count as distinct cycles, assuming not)
     return list(nx.simple_cycles(grid))
 
+def flatten_idx(x: Tuple[int, int]):
+    return x[0] * args.height + x[1]
+
 def normalize_cycle(sequence: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    """
+    Translate the cycle to the corner, rotate the sequence it so it starts with the lowest index, and reverse so the next is higher than the previous
+
+    Normalizing the rotation with respect to the map itself remains to be done
+    """
     low_x = min(map(lambda x: x[0], sequence))
     low_y = min(map(lambda x: x[1], sequence))
-    min_idx = sequence.index(min(sequence, key=lambda x: x[0] * args.height + x[1]))
-    return list(map(lambda x: (x[0] - low_x, x[1] - low_y), sequence))
+    min_idx = sequence.index(min(sequence, key=flatten_idx))
+    rotated = sequence[min_idx:] + sequence[:min_idx]
+    if flatten_idx(rotated[-1]) > flatten_idx(rotated[1]):
+        rotated.reverse()
+        rotated = rotated[-1:] + rotated[:-1]
+
+
+    return list(map(lambda x: (x[0] - low_x, x[1] - low_y), rotated))
 
 def filter_cycles(sequence: List[Tuple[int, int]]) -> bool:
-    return len(sequence) == 4
+    seq_len = len(sequence)
+    return 4 <= seq_len <= 10
 
 # def distance_measure(sol1: List[Tuple[int, int]], sol2: List[Tuple[int, int]]): 
 
