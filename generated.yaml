@@ -1,20 +1,20 @@
 tile_size: 0.585
 tiles:
-- [curve_left/W, straight/E, curve_left/N, grass, grass]
-- [curve_left/S, curve_left/N, straight/S, grass, grass]
-- [grass, straight/S, straight/S, grass, grass]
-- [grass, curve_left/S, curve_left/E, grass, grass]
-- [grass, grass, grass, grass, grass]
+- [curve_left/W, straight/E, straight/E, curve_left/N, grass]
+- [straight/S, grass, grass, curve_left/S, curve_left/N]
+- [straight/S, grass, grass, grass, straight/S]
+- [straight/S, grass, grass, curve_left/W, curve_left/E]
+- [curve_left/S, straight/E, straight/E, curve_left/E, grass]
 objects:
 - height: 0.06
   kind: duckie
   optional: false
-  pos: [1.4860333920064133, 1.6309349117720227]
-  rotate: 195
+  pos: [0.09466724569715473, 1.3523430488921275]
+  rotate: 127
   static: true
 - height: 0.06
   kind: duckie
   optional: false
-  pos: [0.0756678230673793, 0.15573254384893975]
-  rotate: 242
+  pos: [2.485102204691335, 1.5988194030096647]
+  rotate: 274
   static: true

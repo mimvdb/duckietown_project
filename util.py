@@ -3,6 +3,7 @@ from gym_duckietown.envs import DuckietownEnv
 from PIL import Image
 from const import *
 from typing import List, Tuple
+import logging
 
 mock_env = DuckietownEnv(seed=1)
 
@@ -78,6 +79,6 @@ def graph_transform(conn_map: List[List[Tuple[int, int, int, int]]]) -> List[Lis
             elif conn_map[y][x] == (True, True, False, True):
                 tile_map[y][x] = "4way/E"
             else:
-                tile_map[y][x] = ""
+                tile_map[y][x] = "4way/E"
                 logging.error(f"Unknown tile: {x} {y}")
     return tile_map

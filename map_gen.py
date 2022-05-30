@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from cv2 import flip
 import yaml
 import logging
 import os
@@ -35,8 +36,8 @@ def save_map(map_path: str, map_data: MapFormat1):
     with open(map_path, "w") as f:
         yaml.dump(map_data, f, default_flow_style=None)
 
-# def neighs(x: int, y: int):
-#     return [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+def neighs(x: int, y: int):
+    return [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
 
 # def is_set(l: List[List[bool]], x: int, y: int) -> bool:
 #     if x < 0 or y < 0 or x >= args.width or y >= args.height:
@@ -129,7 +130,18 @@ def normalize_cycle(sequence: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
 
 def filter_cycles(sequence: List[Tuple[int, int]]) -> bool:
     seq_len = len(sequence)
-    return 4 <= seq_len <= 10
+    # return 5 <= seq_len <= 18
+    return seq_len > 4
+
+def validate_cycle(sequence: List[Tuple[int, int]]) -> bool:
+    tiles = set(sequence)
+    neighbours = {frozenset([sequence[i], sequence[(i + 1) % len(sequence)]]) for i in range(len(sequence))}
+    for x, y in sequence:
+        near = neighs(x, y)
+        for other in near:
+            if other in tiles and frozenset([other, (x,y)]) not in neighbours:
+                return False
+    return True
 
 # def distance_measure(sol1: List[Tuple[int, int]], sol2: List[Tuple[int, int]]): 
 
@@ -200,6 +212,12 @@ def placements_to_ducks(placements: List[Tuple[float, float]]) -> List:
         "static": True
     }, placements))
 
+def mirror_x(cycle: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    return normalize_cycle(list(map(lambda x: (-x[0], x[1]), cycle)))
+
+def rotate(cycle: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+    return normalize_cycle(list(map(lambda x: (-x[1], x[0]), cycle)))
+
 def gen_map():
     choices = all_loops()
     logging.warning(f"All loops generated {len(choices)} possibilities")
@@ -207,6 +225,35 @@ def gen_map():
     logging.warning(f"Filtered generated {len(choices)} possibilities")
     choices = list(map(list,set(map(tuple, map(normalize_cycle, choices)))))
     logging.warning(f"Normalization generated {len(choices)} possibilities")
+
+    i = 0
+    while i < len(choices):
+        to_remove = set()
+
+        rot_1 = rotate(choices[i])
+        rot_2 = rotate(rot_1)
+        rot_3 = rotate(rot_2)
+
+        # Maybe shouldn't remove the flipped ones, as left turns may be perceived differently from right turns.
+        flipped_x = mirror_x(choices[i])
+
+        rot_1_f = rotate(flipped_x)
+        rot_2_f = rotate(rot_1_f)
+        rot_3_f = rotate(rot_2_f)
+
+        to_remove = [rot_1, rot_2, rot_3, flipped_x, rot_1_f, rot_2_f, rot_3_f]
+        to_remove = set(map(choices.index, to_remove))
+
+        # make sure that for maps that have a symmetry the original stays in the list
+        to_remove.discard(i)
+
+        for remove in sorted(to_remove, reverse=True):
+            choices.pop(remove)
+        i += 1
+
+    logging.warning(f"Rotation elimination generated {len(choices)} possibilities")
+    choices = list(filter(validate_cycle, choices))
+    logging.warning(f"Validation generated {len(choices)} possibilities")
 
     from util import save_edge_paths, edge_path_to_format
     save_edge_paths(choices)
