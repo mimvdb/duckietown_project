@@ -130,3 +130,6 @@ dmypy.json
 
 out/*
 !.gitkeep
+
+scoring_root/
+fifos/

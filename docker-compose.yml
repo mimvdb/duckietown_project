@@ -1,0 +1,24 @@
+version: '3'
+services:
+  simulator:
+      image: docker.io/andreacensi/duckietown-challenges@sha256:f6e97655c6dbe5966e76cbba2afb40fb8b138b1c95181b8e862852ae64b20356
+      environment:
+          replica: '{"index": 0, "total": 1}'
+          AIDONODE_CONFIG: "env_constructor: Simulator\nenv_parameters:\n  max_steps:\
+              \ 500001 # we don't want the gym to reset itself\n  domain_rand: 0\n\
+              \  camera_width: 640\n  camera_height: 480\n  distortion: true\n \
+              \ num_tris_distractors: 0\n  color_ground: [0, 0.3, 0] # green\n \
+              \ enable_leds: true\n"
+          AIDONODE_DATA_IN: /fifos/simulator-in
+          AIDONODE_DATA_OUT: fifo:/fifos/simulator-out
+      volumes:
+          - ./fifos:/fifos
+  solution-ego0:
+      image: mimvdb/aido-submissions:2021_11_10_09_23_37
+      environment:
+          replica: '{"index": 0, "total": 1}'
+          AIDONODE_NAME: ego0
+          AIDONODE_DATA_IN: /fifos/ego0-in
+          AIDONODE_DATA_OUT: fifo:/fifos/ego0-out
+      volumes:
+          - ./fifos:/fifos

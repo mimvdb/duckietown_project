@@ -55,6 +55,7 @@ from zuper_nodes_wrapper.wrapper_outside import ComponentInterface
 
 config = {
     "timeout_regular": 120,
+    "timeout_initialization": 120,
     "fifo_dir": "./fifos",
     "sim_in": "./fifos/simulator-in",
     "sim_out": "./fifos/simulator-out",
@@ -62,10 +63,15 @@ config = {
     "physics_dt": 0.05
 }
 
+logging.basicConfig(level=logging.DEBUG)
+
+with open("generated.yaml", "r") as file:
+    scenario = file.read()
+
 scenarios = [
-    Scenario("scenario1", "generated.yml", ["ego0"], {
-        "ego0": ScenarioRobotSpec(RobotConfiguration(FriendlyPose(1,1,1), FriendlyVelocity(0,0,0)), "red", "", True, PROTOCOL_NORMAL)
-    }, {}, None)
+    Scenario("scenario1", scenario, ["ego0"], {
+        "ego0": ScenarioRobotSpec(RobotConfiguration(FriendlyPose(1.0,1.0,1.0), FriendlyVelocity(0.0,0.0,0.0)), "red", "", True, PROTOCOL_NORMAL)
+    }, {}, "")
 ]
 
 def robot_stats(fn, dn_i, pc_name):
@@ -91,8 +97,10 @@ async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str):
     all_controlled_robots: Dict[RobotName, str] = {}
     all_controlled_robots["ego0"] = "PROTOCOL_NORMAL"
     # episode = episodes[0]
-    fifo_in = os.path.join(config.fifo_dir, "ego0-in")
-    fifo_out = os.path.join(config.fifo_dir, "ego0-out")
+    if not os.path.exists(config["fifo_dir"]):
+        os.makedirs(config["fifo_dir"])
+    fifo_in = os.path.join(config["fifo_dir"], "ego0-in")
+    fifo_out = os.path.join(config["fifo_dir"], "ego0-out")
 
     # This is long running, previously managed by timeout
     agent_ci = ComponentInterface(
@@ -100,26 +108,26 @@ async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str):
         fifo_out,
         expect_protocol=protocol_agent_DB20_timestamps,
         nickname="ego0",
-        timeout=config.timeout_regular,
+        timeout=config["timeout_regular"],
     )
-    agent_ci._get_node_protocol(timeout=config.timeout_initialization)
+    agent_ci._get_node_protocol(timeout=config["timeout_initialization"])
 
-    logging.debug("Now initializing sim connection", sim_in=config.sim_in, sim_out=config.sim_out)
+    logging.debug("Now initializing sim connection", sim_in=config["sim_in"], sim_out=config["sim_out"])
     # This is long running, previously managed by timeout
     sim_ci = ComponentInterface(
-        config.sim_in,
-        config.sim_out,
+        config["sim_in"],
+        config["sim_out"],
         expect_protocol=protocol_simulator_DB20_timestamps,
         nickname="simulator",
-        timeout=config.timeout_regular,
+        timeout=config["timeout_regular"],
     )
     try:
-        sim_ci._get_node_protocol(timeout=config.timeout_initialization)
+        sim_ci._get_node_protocol(timeout=config["timeout_initialization"])
 
         per_episode = {}
 
-        sim_ci.write_topic_and_expect_zero("seed", config.seed)
-        agent_ci.write_topic_and_expect_zero("seed", config.seed)
+        sim_ci.write_topic_and_expect_zero("seed", config["seed"])
+        agent_ci.write_topic_and_expect_zero("seed", config["seed"])
         for scenario in scenarios:
             dn = os.path.join(log_dir, scenario.scenario_name)
             if os.path.exists(dn):
@@ -142,8 +150,7 @@ async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str):
                     sim_ci,
                     agent_ci,
                     scenario=scenario,
-                    config=config,
-                    physics_dt=config.physics_dt,
+                    physics_dt=config["physics_dt"],
                 )
                 logging.info(f"Finished episode {scenario.scenario_name} with length {length_s:.2f}")
             except:
@@ -159,7 +166,7 @@ async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str):
             if length_s == 0:
                 continue
 
-            with ProcessPoolExecutor(max_workers=config.max_workers) as executor:
+            with ProcessPoolExecutor(max_workers=config["max_workers"]) as executor:
                 # output_video = os.path.join(dn, "ui_image.mp4")
                 # output_gif = os.path.join(dn, "ui_image.gif")
                 # executor.submit(ui_image_bg, fn=fn, output_video=output_video, output_gif=output_gif)
@@ -179,6 +186,8 @@ def main():
     with dc.scoring_context("./scoring_root") as cie:
         try:
             logdir = os.path.join(cie.root, "logdir")
+            if not os.path.exists(logdir):
+                os.makedirs(logdir)
             asyncio.run(main_async(cie, logdir), debug=True)
             cie.set_score("simulation-passed", 1)
         except:
@@ -196,7 +205,7 @@ async def run_episode(
     physics_dt: float,
     scenario: Scenario,
 ) -> float:
-    episode_length_s = config.episode_length_s
+    episode_length_s = 200 #config["episode_length_s"]
 
     # clear simulation
     sim_ci.write_topic_and_expect_zero("clear")
@@ -379,3 +388,5 @@ async def run_episode(
                 logging.info("Woohoo 20 steps")
 
     return current_sim_time
+
+main()
