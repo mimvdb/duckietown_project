@@ -1,12 +1,15 @@
 # Connects to a running simulator and bot image, and connects them together and evaluates them.
 # Adapted from duckietown_experiment_manager
 
+import logging
+
+from aido_analyze.utils_video import make_video_ui_image
+logging.basicConfig(level=logging.DEBUG)
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import functools
 from aido_schemas.protocol_simulator import FriendlyPose, FriendlyVelocity, RobotConfiguration, ScenarioRobotSpec
 import duckietown_challenges as dc
 import asyncio
-import logging
 import os
 import traceback
 import shutil
@@ -49,7 +52,7 @@ from duckietown_world import Tile
 from duckietown_world.rules import EvaluatedMetric, RuleEvaluationResult
 
 from zuper_nodes import ExternalProtocolViolation, RemoteNodeAborted
-from zuper_nodes_wrapper import Profiler, ProfilerImp
+from zuper_nodes_wrapper import Profiler, ProfilerImp, logger
 from zuper_nodes_wrapper.struct import MsgReceived
 from zuper_nodes_wrapper.wrapper_outside import ComponentInterface
 
@@ -62,8 +65,6 @@ config = {
     "seed": 888,
     "physics_dt": 0.05
 }
-
-logging.basicConfig(level=logging.DEBUG)
 
 with open("generated.yaml", "r") as file:
     scenario = file.read()
@@ -112,7 +113,7 @@ async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str):
     )
     agent_ci._get_node_protocol(timeout=config["timeout_initialization"])
 
-    logging.debug("Now initializing sim connection", sim_in=config["sim_in"], sim_out=config["sim_out"])
+    logger.debug("Now initializing sim connection", sim_in=config["sim_in"], sim_out=config["sim_out"])
     # This is long running, previously managed by timeout
     sim_ci = ComponentInterface(
         config["sim_in"],
@@ -143,7 +144,7 @@ async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str):
             agent_ci.cc(fw)
             sim_ci.cc(fw)
 
-            logging.info(f"Now running episode {scenario.scenario_name}")
+            logger.info(f"Now running episode {scenario.scenario_name}")
 
             try:
                 length_s = await run_episode(
@@ -152,24 +153,25 @@ async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str):
                     scenario=scenario,
                     physics_dt=config["physics_dt"],
                 )
-                logging.info(f"Finished episode {scenario.scenario_name} with length {length_s:.2f}")
+                logger.info(f"Finished episode {scenario.scenario_name} with length {length_s:.2f}")
             except:
                 msg = "Anomalous error from run_episode()"
-                logging.error(msg, e=traceback.format_exc())
+                logger.error(msg, e=traceback.format_exc())
                 raise
             finally:
                 fw.close()
                 os.rename(fn_tmp, fn)
 
-            logging.debug("Now creating visualization and analyzing statistics.")
+            logger.debug("Now creating visualization and analyzing statistics.")
 
             if length_s == 0:
                 continue
 
-            with ProcessPoolExecutor(max_workers=config["max_workers"]) as executor:
-                # output_video = os.path.join(dn, "ui_image.mp4")
+            with ProcessPoolExecutor(max_workers=10) as executor:
+                output_video = os.path.join(dn, "ui_image.mp4")
                 # output_gif = os.path.join(dn, "ui_image.gif")
                 # executor.submit(ui_image_bg, fn=fn, output_video=output_video, output_gif=output_gif)
+                make_video_ui_image(log_filename=fn, output_video=output_video)
                 # out_video = os.path.join(dn, "camera.mp4")
                 # out_gif = os.path.join(dn, "camera.gif")
                 # executor.submit(ui_video2, fn, out_video, "ego0", banner_bottom_fn, out_gif)
@@ -244,10 +246,10 @@ async def run_episode(
             steps += 1
             if stop_at is not None:
                 if steps == stop_at:
-                    logging.info(f"Reached {steps} steps. Finishing. ")
+                    logger.info(f"Reached {steps} steps. Finishing. ")
                     break
             if current_sim_time >= episode_length_s:
-                logging.info(f"Reached {episode_length_s:.1f} seconds. Finishing. ")
+                logger.info(f"Reached {episode_length_s:.1f} seconds. Finishing. ")
                 break
 
             # tt = TimeTracker(steps)
@@ -296,96 +298,96 @@ async def run_episode(
                         f"Breaking because of simulator. Will break in {NMORE} more steps at step "
                         f"= {stop_at}."
                     )
-                    logging.info(msg, sim_state=sim_state)
+                    logger.info(msg, sim_state=sim_state)
                 else:
                     msg = f"Simulation is done. Waiting for step {stop_at} to stop."
-                    logging.info(msg)
+                    logger.info(msg)
 
-                    f = functools.partial(
-                        sim_ci.write_topic_and_expect,
-                        "get_robot_performance",
-                        "ego0",
-                        expect="robot_performance"
-                    )
+            f = functools.partial(
+                sim_ci.write_topic_and_expect,
+                "get_robot_performance",
+                "ego0",
+                expect="robot_performance"
+            )
 
-                    _recv: MsgReceived[RobotPerformance] = await loop.run_in_executor(executor, f)
+            _recv: MsgReceived[RobotPerformance] = await loop.run_in_executor(executor, f)
 
-                    get_robot_observations = GetRobotObservations("ego0", t_effective)
+            get_robot_observations = GetRobotObservations("ego0", t_effective)
 
-                    f = functools.partial(
-                        sim_ci.write_topic_and_expect,
-                        "get_robot_observations",
-                        get_robot_observations,
-                        expect="robot_observations",
-                    )
-                    recv_observations: MsgReceived[RobotObservations]
-                    recv_observations = await loop.run_in_executor(executor, f)
-                    ro: RobotObservations = recv_observations.data
-                    obs = cast(DB20ObservationsWithTimestamp, ro.observations)
-                    map_data = cast(str, scenario.environment)
+            f = functools.partial(
+                sim_ci.write_topic_and_expect,
+                "get_robot_observations",
+                get_robot_observations,
+                expect="robot_observations",
+            )
+            recv_observations: MsgReceived[RobotObservations]
+            recv_observations = await loop.run_in_executor(executor, f)
+            ro: RobotObservations = recv_observations.data
+            obs = cast(DB20ObservationsWithTimestamp, ro.observations)
+            map_data = cast(str, scenario.environment)
 
-                    # if pr == PROTOCOL_FULL:
-                    #     obs_plus = DB20ObservationsPlusState(
-                    #         camera=obs.camera,
-                    #         odometry=obs.odometry,
-                    #         your_name=agent_name,
-                    #         state=state_dump.data.state,
-                    #         map_data=map_data,
-                    #     )
-                    # elif pr == PROTOCOL_NORMAL:
-                    obs_plus = DB20ObservationsWithTimestamp(
-                        camera=obs.camera, odometry=obs.odometry
-                    )
-                    # elif pr == PROTOCOL_STATE:
-                    #     obs_plus = DB20ObservationsOnlyState(
-                    #         your_name=agent_name,
-                    #         state=state_dump.data.state,
-                    #         map_data=map_data,
-                    #     )
-                    # else:
-                    #     raise NotImplementedError(pr)
-                    f = functools.partial(
-                        agent_ci.write_topic_and_expect_zero,
-                        "observations",
-                        obs_plus,
-                    )
-                    await loop.run_in_executor(executor, f)
+            # if pr == PROTOCOL_FULL:
+            #     obs_plus = DB20ObservationsPlusState(
+            #         camera=obs.camera,
+            #         odometry=obs.odometry,
+            #         your_name=agent_name,
+            #         state=state_dump.data.state,
+            #         map_data=map_data,
+            #     )
+            # elif pr == PROTOCOL_NORMAL:
+            obs_plus = DB20ObservationsWithTimestamp(
+                camera=obs.camera, odometry=obs.odometry
+            )
+            # elif pr == PROTOCOL_STATE:
+            #     obs_plus = DB20ObservationsOnlyState(
+            #         your_name=agent_name,
+            #         state=state_dump.data.state,
+            #         map_data=map_data,
+            #     )
+            # else:
+            #     raise NotImplementedError(pr)
+            f = functools.partial(
+                agent_ci.write_topic_and_expect_zero,
+                "observations",
+                obs_plus,
+            )
+            await loop.run_in_executor(executor, f)
 
-                    get_commands = GetCommands(t_effective)
-                    # noinspection PyProtectedMember
-                    f = functools.partial(agent_ci._write_topic, "get_commands", get_commands)
-                    await loop.run_in_executor(executor, f)
+            get_commands = GetCommands(t_effective)
+            # noinspection PyProtectedMember
+            f = functools.partial(agent_ci._write_topic, "get_commands", get_commands)
+            await loop.run_in_executor(executor, f)
 
-                    f = functools.partial(agent_ci.read_one, "commands")
-                    msg = await loop.run_in_executor(executor, f)
-                    cmds = msg.data
-                    set_robot_commands = SetRobotCommands("ego0", t_effective, cmds)
-                    f = functools.partial(
-                        sim_ci.write_topic_and_expect_zero,
-                        "set_robot_commands",
-                        set_robot_commands,
-                    )
-                    await loop.run_in_executor(executor, f)
+            f = functools.partial(agent_ci.read_one, "commands")
+            msg = await loop.run_in_executor(executor, f)
+            cmds = msg.data
+            set_robot_commands = SetRobotCommands("ego0", t_effective, cmds)
+            f = functools.partial(
+                sim_ci.write_topic_and_expect_zero,
+                "set_robot_commands",
+                set_robot_commands,
+            )
+            await loop.run_in_executor(executor, f)
 
-                current_sim_time += physics_dt
-                f = functools.partial(
-                    sim_ci.write_topic_and_expect_zero, "step", Step(current_sim_time)
-                )
-                await loop.run_in_executor(executor, f)
+            current_sim_time += physics_dt
+            f = functools.partial(
+                sim_ci.write_topic_and_expect_zero, "step", Step(current_sim_time)
+            )
+            await loop.run_in_executor(executor, f)
 
-                f = functools.partial(
-                    sim_ci.write_topic_and_expect,
-                    "get_ui_image",
-                    None,
-                    expect="ui_image",
-                )
-                r_ui_image: MsgReceived[JPGImage] = await loop.run_in_executor(executor, f)
+            f = functools.partial(
+                sim_ci.write_topic_and_expect,
+                "get_ui_image",
+                None,
+                expect="ui_image",
+            )
+            r_ui_image: MsgReceived[JPGImage] = await loop.run_in_executor(executor, f)
 
             if steps % 100 == 0:
                 # gc.collect()
                 pass
             if steps % 20 == 0:
-                logging.info("Woohoo 20 steps")
+                logger.info("Woohoo 20 steps")
 
     return current_sim_time
 
