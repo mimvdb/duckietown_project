@@ -22,3 +22,7 @@ services:
           AIDONODE_DATA_OUT: fifo:/fifos/ego0-out
       volumes:
           - ./fifos:/fifos
+  control:
+      build: .
+      volumes:
+          - ./fifos:/fifos

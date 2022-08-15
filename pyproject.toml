@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "duckietown_project"
+version = "0.1.0"
+description = ""
+authors = ["Mim van den Bos"]
+
+[tool.poetry.dependencies]
+python = "~3.9.0"
+procgraph-z6 = "^6.1.9"
+aido-analyze-daffy = "^6.1.7"
+duckietown-challenges-daffy = "^6.3.20"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
