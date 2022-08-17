@@ -12,16 +12,19 @@ import networkx as nx
 from typing import List, Tuple
 from const import *
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--force", action="store_true", help="overwrite existing maps")
-parser.add_argument("--width", default=5, help="width of the map to generate")
-parser.add_argument("--height", default=5, help="height of the map to generate")
-parser.add_argument("--seed", default=None, help="seed for random generator")
-parser.add_argument("--file-name", default="generated.yaml")
-args = parser.parse_args()
-
+args = {}
 rand = Random()
 
+
+def init_args(init):
+    args.update(init)
+
+
+def init_args_parser(parser: argparse.ArgumentParser):
+    parser.add_argument("--force", action="store_true", help="overwrite existing maps")
+    parser.add_argument("--width", default=5, help="width of the map to generate")
+    parser.add_argument("--height", default=5, help="height of the map to generate")
+    parser.add_argument("--file-name", default="generated.yaml")
 
 
 def save_map(map_path: str, map_data: MapFormat1):
@@ -263,5 +266,9 @@ def gen_map():
     map_dict["objects"] = placements_to_ducks(object_placement(5, 2, edges))
     return map_dict
 
-the_map = gen_map()
-save_map(args.file_name, the_map)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    init_args_parser(parser)
+    init_args(parser.parse_args())
+    the_map = gen_map()
+    save_map(args.file_name, the_map)

@@ -9,6 +9,8 @@ python = "~3.9.0"
 procgraph-z6 = "^6.1.9"
 aido-analyze-daffy = "^6.1.7"
 duckietown-challenges-daffy = "^6.3.20"
+opencv-python = "^4.6.0"
+duckietown-gym-daffy = "^6.1.30"
 
 [tool.poetry.dev-dependencies]
 

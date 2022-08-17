@@ -391,4 +391,5 @@ async def run_episode(
 
     return current_sim_time
 
-main()
+if __name__ == "__main__":
+    main()
