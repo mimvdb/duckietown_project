@@ -1,7 +1,7 @@
 # duckietown_project
 
 ## Running with docker
-- If run before, remove all files in `fifos` folder. e.g. `rm ./fifos/*`
+- Remove all files in `fifos` folder, if any. e.g. `rm ./fifos/*`
 - *Optional* Run `docker compose build` to recreate the image
 - Run `docker compose up` (or `docker-compose up` if on older version) (`--force-recreate` to force creating new containers from the images if ego doesn't behave)
 - Terminate with `Ctrl + C` once `duckietown_project-control-1` has finished if necessary
