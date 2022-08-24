@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 out/*
-!.gitkeep
+scoring_root/*
+fifos/*
 
-scoring_root/
-fifos/
+!.gitkeep

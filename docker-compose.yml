@@ -1,7 +1,7 @@
 version: '3'
 services:
   simulator:
-      image: docker.io/andreacensi/duckietown-challenges@sha256:f6e97655c6dbe5966e76cbba2afb40fb8b138b1c95181b8e862852ae64b20356
+      image: docker.io/andreacensi/duckietown-challenges@sha256:f6e97655c6dbe5966e76cbba2afb40fb8b138b1c95181b8e862852ae64b20356 # duckietown/challenge-aido_lf-simulator-gym:daffy
       environment:
           replica: '{"index": 0, "total": 1}'
           AIDONODE_CONFIG: "env_constructor: Simulator\nenv_parameters:\n  max_steps:\
@@ -14,7 +14,7 @@ services:
       volumes:
           - ./fifos:/fifos
   solution-ego0:
-      image: mimvdb/aido-submissions:2021_11_10_09_23_37
+      image: duckietown/challenge-aido_lf-baseline-duckietown:daffy #mimvdb/aido-submissions:2021_11_10_09_23_37
       environment:
           replica: '{"index": 0, "total": 1}'
           AIDONODE_NAME: ego0

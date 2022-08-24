@@ -192,9 +192,10 @@ def main(scoring_root, scenario_path):
             with open(scenario_path, "r") as file:
                 scenario = file.read()
 
+            # Duckie posisition is in meters 0,0 is bottom left 0.0 theta is facing right
             scenarios = [
                 Scenario("scenario1", scenario, ["ego0"], {
-                    "ego0": ScenarioRobotSpec(RobotConfiguration(FriendlyPose(1.0,1.0,1.0), FriendlyVelocity(0.0,0.0,0.0)), "red", "", True, PROTOCOL_NORMAL)
+                    "ego0": ScenarioRobotSpec(RobotConfiguration(FriendlyPose(0.3,0.3,0.0), FriendlyVelocity(0.0,0.0,0.0)), "red", "", True, PROTOCOL_NORMAL)
                 }, {}, "")
             ]
             asyncio.run(main_async(cie, logdir, scenarios), debug=True)
