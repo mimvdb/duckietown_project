@@ -59,21 +59,12 @@ from zuper_nodes_wrapper.wrapper_outside import ComponentInterface
 config = {
     "timeout_regular": 120,
     "timeout_initialization": 120,
-    "fifo_dir": "./fifos",
-    "sim_in": "./fifos/simulator-in",
-    "sim_out": "./fifos/simulator-out",
+    "fifo_dir": "/fifos",
+    "sim_in": "/fifos/simulator-in",
+    "sim_out": "/fifos/simulator-out",
     "seed": 888,
     "physics_dt": 0.05
 }
-
-with open("generated.yaml", "r") as file:
-    scenario = file.read()
-
-scenarios = [
-    Scenario("scenario1", scenario, ["ego0"], {
-        "ego0": ScenarioRobotSpec(RobotConfiguration(FriendlyPose(1.0,1.0,1.0), FriendlyVelocity(0.0,0.0,0.0)), "red", "", True, PROTOCOL_NORMAL)
-    }, {}, "")
-]
 
 def robot_stats(fn, dn_i, pc_name):
     Tile.style = "synthetic"
@@ -92,7 +83,7 @@ def robot_stats(fn, dn_i, pc_name):
             stats[M] = float(em.total)
     return stats
 
-async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str):
+async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str, scenarios: List[Scenario]):
     all_player_robots: Set[RobotName] = set()
     all_player_robots.add("ego0")
     all_controlled_robots: Dict[RobotName, str] = {}
@@ -184,13 +175,29 @@ async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str):
 
     cie.set_score("per-episodes", per_episode)
 
-def main():
-    with dc.scoring_context("./scoring_root") as cie:
+def main(scoring_root, scenario_path):
+    if not os.path.exists(scoring_root):
+        os.makedirs(scoring_root)
+    
+    with open(scoring_root + "/dummyfile", "w"):
+        # File required for integrity check on next call
+        pass
+
+    with dc.scoring_context(scoring_root) as cie:
         try:
             logdir = os.path.join(cie.root, "logdir")
             if not os.path.exists(logdir):
                 os.makedirs(logdir)
-            asyncio.run(main_async(cie, logdir), debug=True)
+
+            with open(scenario_path, "r") as file:
+                scenario = file.read()
+
+            scenarios = [
+                Scenario("scenario1", scenario, ["ego0"], {
+                    "ego0": ScenarioRobotSpec(RobotConfiguration(FriendlyPose(1.0,1.0,1.0), FriendlyVelocity(0.0,0.0,0.0)), "red", "", True, PROTOCOL_NORMAL)
+                }, {}, "")
+            ]
+            asyncio.run(main_async(cie, logdir, scenarios), debug=True)
             cie.set_score("simulation-passed", 1)
         except:
             cie.error(f"weird exception: {traceback.format_exc()}")
@@ -392,4 +399,4 @@ async def run_episode(
     return current_sim_time
 
 if __name__ == "__main__":
-    main()
+    main("../scoring_root", "../generated.yaml")

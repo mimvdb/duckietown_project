@@ -10,7 +10,7 @@ from duckietown_world import MapFormat1
 import networkx as nx
 
 from typing import List, Tuple
-from const import *
+from duckietown_project.const import *
 
 args = {}
 rand = Random()

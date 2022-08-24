@@ -1,7 +1,7 @@
 from duckietown_world import MapFormat1
 from gym_duckietown.envs import DuckietownEnv
 from PIL import Image
-from const import *
+from duckietown_project.const import *
 from typing import List, Tuple
 import logging
 

@@ -26,3 +26,4 @@ services:
       build: .
       volumes:
           - ./fifos:/fifos
+          - ./scoring_root:/app/scoring_root
