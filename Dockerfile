@@ -18,7 +18,7 @@ RUN pip install "poetry==$POETRY_VERSION"
 RUN python -m venv /venv
 
 COPY pyproject.toml poetry.lock ./
-RUN poetry export -f requirements.txt --without-hashes | /venv/bin/pip install -r /dev/stdin
+RUN . /venv/bin/activate && poetry install --no-root
 
 COPY . .
 RUN poetry build && /venv/bin/pip install dist/*.whl
