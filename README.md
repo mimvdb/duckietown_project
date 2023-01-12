@@ -16,4 +16,10 @@ sudo apt update
 sudo apt install python3.9-distutils
 ```
 
-Package management with [poetry](https://python-poetry.org/). See Dockerfile for required OS dependencies. Example command `poetry run python -m duckietown_project automated --scoring-root ./scoring_root --scenario-path ./generated.yaml`. See `./duckietown_project/__main__.py` for available commands.
+Package management with [poetry](https://python-poetry.org/). See Dockerfile for required OS dependencies.
+
+A python module is used to enable building the project for a docker image. This means python files must be executed with `python -m duckietown_project`. See `./duckietown_project/__main__.py` for available commands. Example commands:
+```bash
+poetry run python -m duckietown_project map
+poetry run python -m duckietown_project automated --scoring-root ./scoring_root --scenario-path ./generated.yaml
+```

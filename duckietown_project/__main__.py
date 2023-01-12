@@ -1,8 +1,7 @@
 def run_map(args):
     import duckietown_project.map_gen as map_gen
     map_gen.init_args(args)
-    the_map = map_gen.gen_map()
-    map_gen.save_map(args.file_name, the_map)
+    map_gen.main()
 
 
 def run_auto_control(args):

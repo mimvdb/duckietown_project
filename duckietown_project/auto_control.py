@@ -15,7 +15,7 @@ from cv2 import VideoWriter, VideoWriter_fourcc, cvtColor, COLOR_RGB2BGR
 
 # from experiments.utils import save_img
 
-args = {}
+args = argparse.Namespace()
 
 def init_args_parser(parser):
     parser.add_argument("--map-name", default="udem1")
@@ -29,7 +29,8 @@ def init_args_parser(parser):
     parser.add_argument("--seed", default=1, type=int, help="seed")
 
 def init_args(init):
-    args.update(init)
+    global args
+    args = init
 
 
 def run():
@@ -49,8 +50,8 @@ def run():
     env.reset()
     pixels = env.render("top_down")
     im = Image.fromarray(pixels)
-    im.save("out/start.jpeg")
-    out = VideoWriter('out/output_video.mp4', VideoWriter_fourcc(*'MP4V'), 30, (800, 600))
+    im.save("./start.jpeg")
+    out = VideoWriter('./output_video.mp4', VideoWriter_fourcc(*'MP4V'), 30, (800, 600))
 
     while True:
         """

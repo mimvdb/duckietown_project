@@ -24,11 +24,6 @@ def edge_path_to_format(edges: List[Tuple[int, int]]):
     return map_dict
 
 
-def save_edge_paths(edgess: List[List[Tuple[int, int]]]):
-    for i in range(len(edgess)):
-        save_map_image(edge_path_to_format(edgess[i]), f"out/map_{i}.jpeg")
-
-
 def empty() -> List[List[Tuple[int, int, int, int]]]:
     cycle_map = []
     for i in range(HEIGHT):

@@ -11,20 +11,24 @@ import networkx as nx
 
 from typing import List, Tuple
 from duckietown_project.const import *
+from duckietown_project.util import save_map_image, edge_path_to_format
 
-args = {}
+args = argparse.Namespace()
 rand = Random()
 
 
 def init_args(init):
-    args.update(init)
+    global args
+    args = init
 
 
 def init_args_parser(parser: argparse.ArgumentParser):
     parser.add_argument("--force", action="store_true", help="overwrite existing maps")
+    parser.add_argument("--no-images", action="store_true", help="don't generate image views of the maps")
     parser.add_argument("--width", default=5, help="width of the map to generate")
     parser.add_argument("--height", default=5, help="height of the map to generate")
-    parser.add_argument("--file-name", default="generated.yaml")
+    parser.add_argument("--file-name", default="map")
+    parser.add_argument("--path", default="./maps")
 
 
 def save_map(map_path: str, map_data: MapFormat1):
@@ -221,7 +225,7 @@ def mirror_x(cycle: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
 def rotate(cycle: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     return normalize_cycle(list(map(lambda x: (-x[1], x[0]), cycle)))
 
-def gen_map():
+def gen_maps() -> List[MapFormat1]:
     choices = all_loops()
     logging.warning(f"All loops generated {len(choices)} possibilities")
     choices = list(filter(filter_cycles, choices))
@@ -238,6 +242,7 @@ def gen_map():
         rot_3 = rotate(rot_2)
 
         # Maybe shouldn't remove the flipped ones, as left turns may be perceived differently from right turns.
+        # Flipped can be removed if it is traversed both ways (left turn becomes right turn when taken from other side).
         flipped_x = mirror_x(choices[i])
 
         rot_1_f = rotate(flipped_x)
@@ -258,17 +263,23 @@ def gen_map():
     choices = list(filter(validate_cycle, choices))
     logging.warning(f"Validation generated {len(choices)} possibilities")
 
-    from util import save_edge_paths, edge_path_to_format
-    save_edge_paths(choices)
+    maps = []
 
-    edges = rand.choice(choices)
-    map_dict = edge_path_to_format(edges)
-    map_dict["objects"] = placements_to_ducks(object_placement(5, 2, edges))
-    return map_dict
+    for edges in choices:
+        map_dict = edge_path_to_format(edges)
+        # map_dict["objects"] = placements_to_ducks(object_placement(5, 2, edges))
+        maps.append(map_dict)
+    return maps
+
+def main():
+    maps = gen_maps()
+
+    for (i,k) in enumerate(maps):
+        save_map(f"{args.path}/{args.file_name}_{i}.yaml", k)
+        if not args.no_images: save_map_image(k, f"{args.path}/{args.file_name}_{i}.jpeg")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     init_args_parser(parser)
     init_args(parser.parse_args())
-    the_map = gen_map()
-    save_map(args.file_name, the_map)
+    main()
