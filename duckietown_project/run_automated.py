@@ -94,6 +94,11 @@ async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str, scenario
     fifo_in = os.path.join(config["fifo_dir"], "ego0-in")
     fifo_out = os.path.join(config["fifo_dir"], "ego0-out")
 
+    if os.path.exists(fifo_in): os.remove(fifo_in)
+    if os.path.exists(fifo_out): os.remove(fifo_out)
+    if os.path.exists(config["sim_in"]): os.remove(config["sim_in"])
+    if os.path.exists(config["sim_out"]): os.remove(config["sim_out"])
+
     # This is long running, previously managed by timeout
     agent_ci = ComponentInterface(
         fifo_in,
@@ -175,7 +180,13 @@ async def main_async(cie: dc.ChallengeInterfaceEvaluator, log_dir: str, scenario
 
     cie.set_score("per-episodes", per_episode)
 
-def main(scoring_root, scenario_path):
+def main(scoring_root, scenario_path, fifos_dir):
+    config.update({
+        "fifo_dir": fifos_dir,
+        "sim_in": fifos_dir + "/simulator-in",
+        "sim_out": fifos_dir + "/simulator-out",
+    })
+
     if not os.path.exists(scoring_root):
         os.makedirs(scoring_root)
     
@@ -189,15 +200,23 @@ def main(scoring_root, scenario_path):
             if not os.path.exists(logdir):
                 os.makedirs(logdir)
 
-            with open(scenario_path, "r") as file:
-                scenario = file.read()
-
-            # Duckie posisition is in meters 0,0 is bottom left 0.0 theta is facing right
-            scenarios = [
-                Scenario("scenario1", scenario, ["ego0"], {
-                    "ego0": ScenarioRobotSpec(RobotConfiguration(FriendlyPose(0.3,0.3,0.0), FriendlyVelocity(0.0,0.0,0.0)), "red", "", True, PROTOCOL_NORMAL)
-                }, {}, "")
-            ]
+            scenarios = []
+            for entry in os.scandir(scenario_path):
+                if entry.is_file() and entry.name.endswith(".yaml"):
+                    name = entry.name[:-5]
+                    print(f"Adding map {name} to list of scenarios")
+                    with open(entry.path, "r") as file:
+                        scenario = Scenario(
+                            name, file.read(), ["ego0"], {
+                                "ego0": ScenarioRobotSpec(
+                                    RobotConfiguration(
+                                        # Duckie posisition is in meters 0,0 is bottom left 0.0 theta is facing right
+                                        FriendlyPose(0.3,0.3,0.0),
+                                        FriendlyVelocity(0.0,0.0,0.0)),
+                                    "red", "", True, PROTOCOL_NORMAL)
+                            },
+                            {}, "")
+                        scenarios.append(scenario)
             asyncio.run(main_async(cie, logdir, scenarios), debug=True)
             cie.set_score("simulation-passed", 1)
         except:
@@ -215,7 +234,7 @@ async def run_episode(
     physics_dt: float,
     scenario: Scenario,
 ) -> float:
-    episode_length_s = 200 #config["episode_length_s"]
+    episode_length_s = 10 #config["episode_length_s"]
 
     # clear simulation
     sim_ci.write_topic_and_expect_zero("clear")
@@ -297,6 +316,7 @@ async def run_episode(
             recv: MsgReceived[SimulationState] = await loop.run_in_executor(executor, f)
 
             sim_state: SimulationState = recv.data
+            if steps % 20 == 0: logger.info("Sim state: ", sim_state=sim_state)
 
             if sim_state.done:
                 if stop_at is None:
@@ -383,21 +403,22 @@ async def run_episode(
             )
             await loop.run_in_executor(executor, f)
 
+            # Needed to generate ui images in the log, which will be extracted when analyzed
             f = functools.partial(
                 sim_ci.write_topic_and_expect,
                 "get_ui_image",
                 None,
                 expect="ui_image",
             )
-            r_ui_image: MsgReceived[JPGImage] = await loop.run_in_executor(executor, f)
+            _r_ui_image: MsgReceived[JPGImage] = await loop.run_in_executor(executor, f)
 
             if steps % 100 == 0:
                 # gc.collect()
                 pass
             if steps % 20 == 0:
-                logger.info("Woohoo 20 steps")
+                logger.info(f"Sim time: {steps} steps = {steps/20} secs")
 
     return current_sim_time
 
 if __name__ == "__main__":
-    main("../scoring_root", "../generated.yaml")
+    main("../scoring_root", "../maps", "../fifos")

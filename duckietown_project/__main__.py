@@ -12,7 +12,7 @@ def run_auto_control(args):
 
 def run_automated(args):
     import duckietown_project.run_automated as run_automated
-    run_automated.main(args.scoring_root, args.scenario_path)
+    run_automated.main(args.scoring_root, args.scenario_path, args.fifos_dir)
 
 
 if __name__ == "__main__":
@@ -33,7 +33,8 @@ if __name__ == "__main__":
 
     automated_parser = subparsers.add_parser("automated")
     automated_parser.add_argument("--scoring-root", default="./scoring_root")
-    automated_parser.add_argument("--scenario-path", default="./generated.yaml")
+    automated_parser.add_argument("--scenario-path", default="./maps")
+    automated_parser.add_argument("--fifos-dir", default="./fifos")
     automated_parser.set_defaults(func=run_automated)
 
     args = parser.parse_args()

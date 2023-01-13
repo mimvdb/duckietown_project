@@ -30,6 +30,5 @@ FROM base as final
 # freeglut3-dev for pyglet, mencoder mplayer for procgraph-z6
 RUN apt-get update && apt-get install ffmpeg libsm6 libxext6 freeglut3-dev mencoder mplayer -y
 COPY --from=builder /venv /venv
-COPY --from=builder /app/generated.yaml /app/generated.yaml
 RUN mkdir scoring_root
-CMD ["/venv/bin/python", "-m", "duckietown_project", "automated", "--scoring-root", "/app/scoring_root", "--scenario-path", "/app/generated.yaml"]
+CMD ["/venv/bin/python", "-m", "duckietown_project", "automated", "--scoring-root", "/app/scoring_root", "--scenario-path", "/maps"]
