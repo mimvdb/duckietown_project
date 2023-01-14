@@ -200,23 +200,37 @@ def main(scoring_root, scenario_path, fifos_dir):
             if not os.path.exists(logdir):
                 os.makedirs(logdir)
 
+            files = [entry for entry in os.scandir(scenario_path) if entry.is_file() and entry.name.endswith(".yaml")]
+            files.sort(key=lambda x: x.name)
             scenarios = []
-            for entry in os.scandir(scenario_path):
-                if entry.is_file() and entry.name.endswith(".yaml"):
-                    name = entry.name[:-5]
-                    print(f"Adding map {name} to list of scenarios")
-                    with open(entry.path, "r") as file:
-                        scenario = Scenario(
-                            name, file.read(), ["ego0"], {
-                                "ego0": ScenarioRobotSpec(
-                                    RobotConfiguration(
-                                        # Duckie posisition is in meters 0,0 is bottom left 0.0 theta is facing right
-                                        FriendlyPose(0.3,0.3,0.0),
-                                        FriendlyVelocity(0.0,0.0,0.0)),
-                                    "red", "", True, PROTOCOL_NORMAL)
-                            },
-                            {}, "")
-                        scenarios.append(scenario)
+            for entry in files:
+                name = entry.name[:-5]
+                print(f"Adding map {name} to list of scenarios")
+                tilesize = 0.585
+                x = 0
+                y = 0
+                with open(entry.path[:-5] + ".start.txt") as startfile:
+                    xy = startfile.readline().split()
+                    x = int(xy[0])
+                    y = int(xy[1])
+                
+                x *= tilesize
+                y *= tilesize
+                x += tilesize * 0.2
+                y += tilesize * 0.3
+
+                with open(entry.path, "r") as file:
+                    scenario = Scenario(
+                        name, file.read(), ["ego0"], {
+                            "ego0": ScenarioRobotSpec(
+                                RobotConfiguration(
+                                    # Duckie posisition is in meters 0,0 is bottom left 0.0 theta is facing right
+                                    FriendlyPose(x, y, 0.0),
+                                    FriendlyVelocity(0.0,0.0,0.0)),
+                                "red", "", True, PROTOCOL_NORMAL)
+                        },
+                        {}, "")
+                    scenarios.append(scenario)
             asyncio.run(main_async(cie, logdir, scenarios), debug=True)
             cie.set_score("simulation-passed", 1)
         except:
@@ -234,7 +248,7 @@ async def run_episode(
     physics_dt: float,
     scenario: Scenario,
 ) -> float:
-    episode_length_s = 10 #config["episode_length_s"]
+    episode_length_s = 100 #config["episode_length_s"]
 
     # clear simulation
     sim_ci.write_topic_and_expect_zero("clear")

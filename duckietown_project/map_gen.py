@@ -277,6 +277,19 @@ def main():
     for (i,k) in enumerate(maps):
         save_map(f"{args.path}/{args.file_name}_{i}.yaml", k)
         if not args.no_images: save_map_image(k, f"{args.path}/{args.file_name}_{i}.jpeg")
+        # Save the location of the first found straight/E to use as start position.
+        # The first is lowest y, then lowest x
+        # This always exists because of the way valid cycles work
+        # (no neighbour tiles that are not connected, so always a gap, so always a straight)
+        t = k["tiles"]
+        for y in range(len(t)):
+            try:
+                x = t[0].index("straight/E")
+                with open(f"{args.path}/{args.file_name}_{i}.start.txt", "w") as f:
+                    f.write(f"{x} {len(t) - 1 - y}")
+                break
+            except ValueError:
+                pass
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
