@@ -8,7 +8,7 @@ services:
               \ 500001 # we don't want the gym to reset itself\n  domain_rand: 0\n\
               \  camera_width: 640\n  camera_height: 480\n  distortion: true\n \
               \ num_tris_distractors: 0\n  color_ground: [0, 0.3, 0] # green\n \
-              \ enable_leds: true\n"
+              \ enable_leds: true\nterminate_on_ool: true\n"
           AIDONODE_DATA_IN: /fifos/simulator-in
           AIDONODE_DATA_OUT: fifo:/fifos/simulator-out
       volumes:

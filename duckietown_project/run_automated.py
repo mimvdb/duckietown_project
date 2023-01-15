@@ -248,7 +248,7 @@ async def run_episode(
     physics_dt: float,
     scenario: Scenario,
 ) -> float:
-    episode_length_s = 100 #config["episode_length_s"]
+    episode_length_s = 200 #config["episode_length_s"]
 
     # clear simulation
     sim_ci.write_topic_and_expect_zero("clear")
